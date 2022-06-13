@@ -1,0 +1,185 @@
+rule all:
+    input:
+        expand("h5/baron_sc.h5"),
+        expand("h5/muraro_sc.h5"),
+        expand("h5/segerstolpe_sc.h5"),
+        expand("h5/wang_sc.h5"),
+        expand("h5/xin_sc.h5"),
+
+
+rule baron_wget:
+    output:
+        h1 = "baron/RAW/GSM2230757_human1_umifm_counts.csv",
+        h2 = "baron/RAW/GSM2230758_human2_umifm_counts.csv",
+        h3 = "baron/RAW/GSM2230759_human3_umifm_counts.csv",
+        h4 = "baron/RAW/GSM2230760_human4_umifm_counts.csv",
+        m1 = "baron/RAW/GSM2230761_mouse1_umifm_counts.csv",
+        m2 = "baron/RAW/GSM2230762_mouse2_umifm_counts.csv"
+    shell:
+        """
+        cd baron
+        sh baron.sh
+        """
+
+rule baron:
+    input:
+        h1 = expand("baron/RAW/GSM2230757_human1_umifm_counts.csv"),
+        h2 = expand("baron/RAW/GSM2230758_human2_umifm_counts.csv"),
+        h3 = expand("baron/RAW/GSM2230759_human3_umifm_counts.csv"),
+        h4 = expand("baron/RAW/GSM2230760_human4_umifm_counts.csv")
+    output:
+        "h5/baron_sc.h5"
+    conda:
+        "environment.yml"
+    shell:
+        """
+        mkdir -p h5
+        python src/baron_to_h5.py {output} {input.h1} {input.h2} {input.h3} {input.h4}
+        """
+
+rule muraro_wget:
+    output:
+        "muraro/RAW/data.csv",
+        "muraro/RAW/cell_type_annotation_Cels2016.csv"
+    shell:
+        """
+        cd muraro
+        sh muraro.sh
+        """
+
+rule muraro:
+    input:
+        d = expand("muraro/RAW/data.csv"),
+        l = expand("muraro/RAW/cell_type_annotation_Cels2016.csv")
+    output:
+        "h5/muraro_sc.h5"
+    conda:
+        "environment.yml"
+    shell:
+        """
+        mkdir -p h5
+        python src/muraro_to_h5.py {output} {input.d}
+        """
+
+rule segerstolpe_wget:
+    output:
+        "segerstolpe/RAW/cut_exp.csv",
+        "segerstolpe/RAW/E-MTAB-5061.sdrf.txt"
+    shell:
+        """
+        cd segerstolpe
+        sh segerstolpe.sh
+        """
+
+rule segerstolpe:
+    input:
+        d = expand("segerstolpe/RAW/cut_exp.csv"),
+        l = expand("segerstolpe/RAW/E-MTAB-5061.sdrf.txt")
+    output:
+        "h5/segerstolpe_sc.h5"
+    conda:
+        "environment.yml"
+    shell:
+        """
+        mkdir -p h5
+        python src/segerstolpe_to_h5.py {output} {input.d} {input.l}
+        """
+
+
+rule wang_wget:
+    output:
+        "wang/RAW/GSE83139_tbx-v-f-norm-ntv-cpms.csv",
+        "wang/RAW/label.txt",
+        "wang/RAW/label2.txt"
+    shell:
+        """
+        cd wang
+        sh wang.sh
+        """
+
+rule wang:
+    input:
+        d = expand("wang/RAW/GSE83139_tbx-v-f-norm-ntv-cpms.csv"),
+        l = expand("wang/RAW/label.txt"),
+        ll = expand("wang/RAW/label2.txt")
+    output:
+        "h5/wang_sc.h5"
+    conda:
+        "environment.yml"
+    shell:
+        """
+        mkdir -p h5
+        python src/wang_to_h5.py {output} {input.d}
+        """
+
+rule xin_wget:
+    output:
+        "xin/RAW/human_gene_annotation.csv",
+        "xin/RAW/human_islet_cell_identity.txt",
+        "xin/RAW/data.txt"
+    shell:
+        """
+        cd xin
+        sh xin.sh
+        """
+
+rule xin:
+    input:
+        d = expand("xin/RAW/data.txt"),
+        l = expand("xin/RAW/human_gene_annotation.csv"),
+        ll = expand("xin/RAW/human_islet_cell_identity.txt")
+    output:
+        "h5/xin_sc.h5"
+    conda:
+        "environment.yml"
+    shell:
+        """
+        mkdir -p h5
+        python src/xin_to_h5.py {output} {input.d}
+        """
+
+rule baron_mouse:
+    input:
+        d1 = expand("baron/RAW/GSM2230761_mouse1_umifm_counts.csv"),
+        d2 = expand("baron/RAW/GSM2230762_mouse2_umifm_counts.csv"),
+    output:
+        "h5/baron_mouse_sc.h5"
+    conda:
+        "environment.yml"
+    shell:
+        """
+        mkdir -p h5
+        python src/baron_mouse_to_h5.py {output} {input.d1} {input.d2}
+        """
+
+rule tabulamuris_wget:
+    output:
+        "tabulamuris/RAW/FACS/",
+        "tabulamuris/RAW/FACS/Pancreas-counts.csv",
+        "tabulamuris/RAW/droplet/",
+        "tabulamuris/RAW/annotations_droplet.csv",
+        "tabulamuris/RAW/annotations_FACS.csv"
+        "tabulamuris/RAW/metadata_FACS.csv"
+        "tabulamuris/RAW/metadata_droplet.csv"
+
+    shell:
+        """
+        cd tabulamuris
+        sh tabulamuris.sh
+        """
+
+rule tabulamuris:
+    input:
+        d = expand("tabulamuris/RAW/FACS/Pancreas-counts.csv"),
+        m = expand("tabulamuris/RAW/annotations_FACS.csv"),
+    output:
+        "h5/tabulamuris_pancreas_sc.h5"
+    conda:
+        "environment.yml"
+    shell:
+        """
+        mkdir -p h5
+        python src/tabula_muris_pancreas_to_h5.py {output} {input.d} {input.m}
+        """
+
+

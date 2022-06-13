@@ -1,0 +1,12 @@
+channels:
+  - defaults
+dependencies:
+  - python=3.8.8
+  - h5py=2.10.0
+  - hdf5=1.10.4
+  - numpy=1.20.1
+  - numpy-base=1.20.1
+  - pandas=1.2.4
+  - scikit-learn=0.24.1
+  - scipy=1.6.2
+  - seaborn=0.11.1
