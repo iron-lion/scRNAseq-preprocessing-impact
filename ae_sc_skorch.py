@@ -1,3 +1,9 @@
+"""
+Parameter Search with Skorch
+    Autoencoder version
+
+"""
+
 import glob
 import os
 import random
@@ -77,7 +83,10 @@ def run(
     X_train, y_train, b_train, train_file_names = h5_data_loader(train_datasets, label_filter)
     X_test, y_test, b_test, test_file_names = h5_data_loader(test_datasets, label_filter)
     
-    # Dataset align
+    """
+    Datasets align on gene symbol axis
+    """
+    #TODO : better way
     common_gene = X_train.columns.intersection(X_test.columns)
     if len(common_gene) <= 0:
         logging.warning(f'Train & Test has 0 common gene symbols')
@@ -121,7 +130,7 @@ def run(
         # deactivate skorch-internal train-valid split and verbose logging
         net.set_params(train_split=False, verbose=0)
 
-        """ Grid Search """
+        """ Grid Search Parameters """
         params = {
             'lr': [0.0005, 0.001],
             'max_epochs': [20,40],
@@ -136,7 +145,7 @@ def run(
         logging.info(f'Grid Search {it} done: {gs.best_params_}')
         logging.info(f'Grid Search {it} done: {gs.best_score_}')
 
-
+        """ With optimal parameter, new Autoencoder setup """
         net = AutoEncoderNet(
             AE,
             latent = latent_space,

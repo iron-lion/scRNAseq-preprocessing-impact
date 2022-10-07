@@ -5,11 +5,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.optim import Adam
-from torch.autograd import Variable
-from torch.optim.lr_scheduler import StepLR
-from src.model import rl_model as L2C
+from src.model import basic_model as bmodel
 from src.model import common as common
 from sklearn.metrics.cluster import adjusted_rand_score
 
@@ -26,11 +22,11 @@ class AE(nn.Module):
             self.decoding = d_dim
         self.latent = l_dim
 
-        self.feature_encoder = L2C.AEncoder(self.channel_len, self.embeding, self.latent, bn=True)
-        self.feature_decoder = L2C.ADecoder(self.channel_len, self.decoding, self.latent, bn=True)
+        self.feature_encoder = bmodel.AEncoder(self.channel_len, self.embeding, self.latent, bn=True)
+        self.feature_decoder = bmodel.ADecoder(self.channel_len, self.decoding, self.latent, bn=True)
 
-        L2C.weights_init(self.feature_encoder)
-        L2C.weights_init(self.feature_decoder)
+        bmodel.weights_init(self.feature_encoder)
+        bmodel.weights_init(self.feature_decoder)
 
 
     def model_train(self):

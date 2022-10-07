@@ -73,7 +73,7 @@ class VGEPEncoder(nn.Module):
 
 
 class AEncoder(nn.Module):
-    def __init__(self, channel_len, layers, latent_size, bn=True, relu=0.1, device=None):
+    def __init__(self, channel_len, layers, latent_size, bn=False, relu=0.2, device=None):
         super(AEncoder, self).__init__()
         l = [channel_len]
         l += layers
@@ -97,7 +97,7 @@ class AEncoder(nn.Module):
 
 
 class ADecoder(nn.Module):
-    def __init__(self, channel_len, layers, latent_size, bn=True, relu=0.1, device=None):
+    def __init__(self, channel_len, layers, latent_size, bn=False, relu=0.2, device=None):
         super(ADecoder, self).__init__()
         l = [latent_size]
         l += layers

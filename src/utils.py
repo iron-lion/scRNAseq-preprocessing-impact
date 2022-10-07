@@ -52,7 +52,6 @@ def df_total20000(x):
     np.nan_to_num(x,0)
     return x
 
-
 def df_minmax(x):
     x = ((x.transpose() - x.min(1))/(x.max(1)-x.min(1)))
     x = x.transpose()

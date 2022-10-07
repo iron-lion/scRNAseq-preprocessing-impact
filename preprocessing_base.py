@@ -1,3 +1,9 @@
+"""
+Base code for comparisons of various preprocessing methods
+    with scRNA-seq datasets
+
+"""
+
 import os
 import sys
 import random
@@ -31,7 +37,8 @@ def run(
     
     """Data transformation test"""
     X_, y_, b_, file_names = h5_data_loader(datasets)
-   
+    logging.info(f'Data loaded. {datasets}')
+
     # initialize latent mapper
     if (latent_model == 'tsne'):
         latent_space = TSNE(n_components=2)
