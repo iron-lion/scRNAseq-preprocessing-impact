@@ -4,6 +4,7 @@ import os
 import glob
 import sys
 import copy
+import h5py
 from sklearn.manifold import TSNE
 from umap import UMAP
 from sklearn.cluster import KMeans
@@ -40,10 +41,17 @@ def df_cp(x):
 def df_log(x):
     return np.log2(x+1.0)
 
-def df_total20000(x):
+def df_total20000_old(x):
     x = x.divide(x.sum(1), axis = 0).mul(20000)
     x = x.replace(np.nan,0)
     return x
+
+def df_total20000(x):    
+    np.nan_to_num(x,0)
+    x = (x.T/x.sum(axis=1)).T*20000
+    np.nan_to_num(x,0)
+    return x
+
 
 def df_minmax(x):
     x = ((x.transpose() - x.min(1))/(x.max(1)-x.min(1)))
@@ -76,11 +84,71 @@ data_transformation = {
     "raw" : df_cp,
     "log" : df_log,
     "total" : df_total20000,
-    "minmax" : df_minmax,
+    "minmax" : df_minmax_scaler,
     "l2norm" : df_l2norm,
     "zscore" : df_zscore,
     "meansquare" : df_meansquare,
 }
+
+
+def h5_data_loader(datasets, label_filter=None):
+    """Data transformation test"""
+    X_, y_, b_, file_names = [], [], [], []
+    
+    for dataset in datasets:
+        file_prefix = dataset.split('/')[-1].split('.')[0]
+        file_names.append(file_prefix)
+
+        # h5 data load
+        hf = h5py.File(dataset, 'r')
+        
+        total_data = pd.DataFrame(hf['data'][:])
+        total_data.columns = hf['column'][:].astype('str')
+        total_data.index = hf['index'][:].astype('str')
+        total_data = total_data.loc[:,~total_data.columns.duplicated(keep='first')]
+
+        labels = np.char.lower(np.array(hf['label'][:,0].astype('str').tolist()))
+        # TODO: better label cleaning
+        labels = np.array([x.split('_')[0] for x in labels])
+        
+        blabels = np.array([file_prefix]*len(labels))
+
+        if label_filter is not None and len(label_filter) > 1:
+            baron_filter = [True if x in label_filter else False for x in labels]
+            total_data = total_data.loc[baron_filter]
+            labels = labels[baron_filter]
+            blabels = blabels[baron_filter]
+
+        X_.append(total_data)
+        y_.append(labels)
+        b_.append(blabels)
+
+        # h5 close
+        hf.close()
+    del(total_data, labels, blabels)
+
+    if len(X_) > 1:
+        common_gene = X_[0].columns
+        for x in X_[1:]:
+            common_gene = common_gene.intersection(x.columns)
+        
+        if (len(common_gene) <= 0):
+#            logging.info(f'Gene symbol mismatch!')
+            exit(-1)
+ 
+        X_ = [x.filter(items=common_gene, axis=1) for x in X_]
+        X_ = pd.concat(X_)
+        y_, b_ = map(
+            np.concatenate, [y_, b_]
+        )
+        file_names = '_'.join(file_names)
+    else:
+        X_ = X_[0]
+        y_ = y_[0]
+        file_names = file_names[0]
+
+    return X_, y_, b_, file_names
+
 
 
 def run_plot(exp, ax, labels, latent_space, cluster, blabels=None, b_ax=None):

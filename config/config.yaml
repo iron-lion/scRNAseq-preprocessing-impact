@@ -1,0 +1,21 @@
+preprocessings:
+  - raw
+  - log
+  - total
+  - total_log
+  - minmax
+  - log_minmax
+  - total_minmax
+  - total_log_minmax
+  - l2norm
+  - log_l2norm
+  - total_l2norm
+  - total_log_l2norm 
+  - meansquare
+  - log_meansquare
+  - total_meansquare
+  - total_log_meansquare
+  - zscore
+  - log_zscore
+  - total_zscore
+  - total_log_zscore
