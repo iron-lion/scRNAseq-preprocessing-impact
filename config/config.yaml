@@ -19,3 +19,18 @@ preprocessings:
   - log_zscore
   - total_zscore
   - total_log_zscore
+
+hp_cell_types:
+  - epsilon
+  - alpha
+  - beta
+  - duct
+  - activated
+  - schwann
+  - gamma
+  - quiescent
+  - delta
+  - macrophage
+  - endothelial
+  - acinar
+  - mast
