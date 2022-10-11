@@ -125,38 +125,37 @@ def run(
         # deactivate skorch-internal train-valid split and verbose logging
         net.set_params(train_split=False, verbose=0)
 
-        if 0:
-            """ Grid Search """
-            params = {
-                'lr': [0.0005, 0.001],
-                'max_epochs': [20,30,40,60],
-                'module__e_dim': [[1024]],
-                'module__l_dim': [128],
-                'module__relu' : [0.1]
-                #'alpha' : [1e-3, 1e-2, 1e-1, 0]
-            }
-           
-            gs = GridSearchCV(net, params, refit=False, cv=StratifiedKFold(n_splits=grid_cv).split(X_train, y_train))
+        """ Grid Search """
+        params = {
+            'lr': [0.0005, 0.001],
+            'max_epochs': [20,30,40,60],
+            'module__e_dim': [[1024]],
+            'module__l_dim': [128],
+            'module__relu' : [0.1]
+            #'alpha' : [1e-3, 1e-2, 1e-1, 0]
+        }
+       
+        gs = GridSearchCV(net, params, refit=False, cv=StratifiedKFold(n_splits=grid_cv).split(X_train, y_train))
 
-            gs.fit(X_train, y_train)
-            logging.info(f'Grid Search {it} done: {gs.best_params_}')
-            logging.info(f'Grid Search {it} done: {gs.best_score_}')
+        gs.fit(X_train, y_train)
+        logging.info(f'Grid Search {it} done: {gs.best_params_}')
+        logging.info(f'Grid Search {it} done: {gs.best_score_}')
 
 
-            net = AutoEncoderNet(
-                AE,
-                latent = latent_space,
-                clustering = clustering_model,
-                alpha = 1e-3,
-                optimizer = torch.optim.Adam,
-                batch_size = 32,
-                module__c_len = feature_length,
-                module__bn = True,
-                **gs.best_params_,
-                iterator_train__shuffle=True,
-                device = 'cuda:'+str(torch.cuda.current_device()) if torch.cuda.is_available() else 'cpu'
-            )
-            net.set_params(train_split=False, verbose=0)
+        net = AutoEncoderNet(
+            AE,
+            latent = latent_space,
+            clustering = clustering_model,
+            alpha = 1e-3,
+            optimizer = torch.optim.Adam,
+            batch_size = 32,
+            module__c_len = feature_length,
+            module__bn = True,
+            **gs.best_params_,
+            iterator_train__shuffle=True,
+            device = 'cuda:'+str(torch.cuda.current_device()) if torch.cuda.is_available() else 'cpu'
+        )
+        net.set_params(train_split=False, verbose=0)
 
         net.fit(X_train, y_train)
 
@@ -267,16 +266,15 @@ if __name__ == '__main__':
     logging.info(f'Output folder: {args.output}')
     logging.info(f'Override: {args.force}')
 
-    for _ in range(1):
-        run(
-            args.train_datasets,
-            args.test_datasets,
-            args.latent_model,
-            args.clustering_model,
-            args.transformations,
-            args.label_filter,
-            args.grid_cv,
-            args.seed,
-            args.output,
-            args.force
-        )
+    run(
+        args.train_datasets,
+        args.test_datasets,
+        args.latent_model,
+        args.clustering_model,
+        args.transformations,
+        args.label_filter,
+        args.grid_cv,
+        args.seed,
+        args.output,
+        args.force
+    )
