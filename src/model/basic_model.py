@@ -40,7 +40,7 @@ class DecoderBlk(nn.Module):
 
 
 class VGEPEncoder(nn.Module):
-    def __init__(self, channel_len, layers, latent_size, bn=True, relu=0.1, device=None):
+    def __init__(self, channel_len : int, layers : list, latent_size : int, bn=True, relu=0.1, device=None):
         super(VGEPEncoder, self).__init__()
         l = [channel_len]
         l += layers
@@ -133,7 +133,7 @@ def weights_init(m):
     elif classname.find('Linear') != -1:
         n = m.weight.size(1)
         m.weight.data.normal_(0, 0.5)
-        #m.weight.data.zero_()
+        m.weight.data.zero_()
         m.bias.data = torch.ones(m.bias.data.size())
 
 

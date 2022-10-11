@@ -16,24 +16,25 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.manifold import TSNE
 from umap import UMAP
 from src.model import common as common
-from src.model.skorch_ae_model import AE
+from src.model.skorch_ae_model import VAE
 from src.utils import clustering
 from src.utils import data_transformation
 from src.utils import h5_data_loader
 
 
-class AutoEncoderNet(NeuralNetRegressor):
+class VariationalAutoEncoderNet(NeuralNetRegressor):
     def __init__(
                 self,
                 module,
                 latent,
                 clustering,
                 alpha,
+                beta,
                 criterion=torch.nn.MSELoss,
                 *args,
                 **kwargs
         ):
-        super(AutoEncoderNet, self).__init__(
+        super(VariationalAutoEncoderNet, self).__init__(
             module,
             criterion=criterion,
             *args,
@@ -43,16 +44,21 @@ class AutoEncoderNet(NeuralNetRegressor):
         self.latent = latent
         self.clustering = clustering
         self.alpha = alpha
+        self.beta = beta
 
     def get_loss(self, y_pred, y_true, *args, **kwargs):
         """ Autoencoder Loss """
-        z, r = y_pred
+        mu, logvar, r = y_pred
+
         loss_reconstruction = super().get_loss(r, y_true, *args, **kwargs)
-        loss_l1 = self.alpha * torch.abs(z).sum()
-        return loss_reconstruction + loss_l1
+        loss_kld = self.beta * (-0.5 * torch.sum(1 + logvar \
+                                - mu.pow(2) - logvar.exp())) \
+                             / len(mu)
+        loss_l1 = self.alpha * torch.abs(mu).sum()
+        return loss_reconstruction + loss_kld + loss_l1
 
     def score(self, X, y, *args, **kwargs):
-        z, _ = super().forward(X)
+        z, _, _ = super().forward(X)
         latent_vector = self.latent.fit_transform(z)
         best, _ = clustering(latent_vector, y, cluster=self.clustering)
         return best[1]
@@ -103,21 +109,21 @@ def run(
             assert(0, 'ldim')
 
         ####### ---- #######
-        net = AutoEncoderNet(
-            AE,
+        net = VariationalAutoEncoderNet(
+            VAE,
             latent = latent_space,
             clustering = clustering_model,
             alpha = 1e-3,
+            beta = 1e-5,
             optimizer = torch.optim.Adam,
             batch_size = 32,
             module__c_len = feature_length,
-            module__e_dim = [1024],
-            module__d_dim = [1024],
+            module__e_dim = [512],
+            module__d_dim = [512],
             module__l_dim = 128,
-            module__bn = True,
-            module__relu = 0.1,
+            module__device = 'cuda:'+str(torch.cuda.current_device()) if torch.cuda.is_available() else 'cpu',
             max_epochs=40,
-            lr=0.0005,
+            lr=0.1,
             iterator_train__shuffle=True,
             device = 'cuda:'+str(torch.cuda.current_device()) if torch.cuda.is_available() else 'cpu'
         )
@@ -125,41 +131,39 @@ def run(
         # deactivate skorch-internal train-valid split and verbose logging
         net.set_params(train_split=False, verbose=0)
 
-        if 0:
-            """ Grid Search """
-            params = {
-                'lr': [0.0005, 0.001],
-                'max_epochs': [20,30,40,60],
-                'module__e_dim': [[1024]],
-                'module__l_dim': [128],
-                'module__relu' : [0.1]
-                #'alpha' : [1e-3, 1e-2, 1e-1, 0]
-            }
-           
-            gs = GridSearchCV(net, params, refit=False, cv=StratifiedKFold(n_splits=grid_cv).split(X_train, y_train))
+        """ Grid Search """
+        params = {
+            'lr': [0.0005, 0.001],
+            'max_epochs': [20,40,60],
+            'batch_size' : [32],
+            'module__e_dim': [[1024]],
+            'module__l_dim': [128, 64],
+            'alpha' : [1e-3, 1e-2, 1e-1, 0],
+            'beta' : [1e-6, 1e-5, 1e-4, 1e-3]
+        }
+       
+        gs = GridSearchCV(net, params, refit=False, cv=StratifiedKFold(n_splits=grid_cv).split(X_train, y_train))
 
-            gs.fit(X_train, y_train)
-            logging.info(f'Grid Search {it} done: {gs.best_params_}')
-            logging.info(f'Grid Search {it} done: {gs.best_score_}')
+        gs.fit(X_train, y_train)
+        logging.info(f'Grid Search {it} done: {gs.best_params_}')
+        logging.info(f'Grid Search {it} done: {gs.best_score_}')
 
 
-            net = AutoEncoderNet(
-                AE,
-                latent = latent_space,
-                clustering = clustering_model,
-                alpha = 1e-3,
-                optimizer = torch.optim.Adam,
-                batch_size = 32,
-                module__c_len = feature_length,
-                module__bn = True,
-                **gs.best_params_,
-                iterator_train__shuffle=True,
-                device = 'cuda:'+str(torch.cuda.current_device()) if torch.cuda.is_available() else 'cpu'
-            )
-            net.set_params(train_split=False, verbose=0)
+        net = VariationalAutoEncoderNet(
+            VAE,
+            latent = latent_space,
+            clustering = clustering_model,
+            optimizer = torch.optim.Adam,
+            module__c_len = feature_length,
+            module__device = 'cuda:'+str(torch.cuda.current_device()) if torch.cuda.is_available() else 'cpu',
+            **gs.best_params_,
+            iterator_train__shuffle=True,
+            device = 'cuda:'+str(torch.cuda.current_device()) if torch.cuda.is_available() else 'cpu'
+        )
+        net.set_params(train_split=False, verbose=2)
 
         net.fit(X_train, y_train)
-
+        
         # TODO: net.score(X_test, y_test) ?
         encoded_pred = net.predict(X_test)
         latent = latent_space.fit_transform(encoded_pred)
@@ -255,7 +259,7 @@ if __name__ == '__main__':
     # individual combinations.
     os.makedirs(args.output, exist_ok=True)
 
-    logging.info(f'AutoEncoder GridSearchCV')
+    logging.info(f'VariationalAutoEncoder GridSearchCV')
     logging.info(f'Train Dataset(s): {args.train_datasets}')
     logging.info(f'Test Dataset(s): {args.test_datasets}')
     logging.info(f'Latent model: {args.latent_model}')
@@ -267,16 +271,15 @@ if __name__ == '__main__':
     logging.info(f'Output folder: {args.output}')
     logging.info(f'Override: {args.force}')
 
-    for _ in range(1):
-        run(
-            args.train_datasets,
-            args.test_datasets,
-            args.latent_model,
-            args.clustering_model,
-            args.transformations,
-            args.label_filter,
-            args.grid_cv,
-            args.seed,
-            args.output,
-            args.force
-        )
+    run(
+        args.train_datasets,
+        args.test_datasets,
+        args.latent_model,
+        args.clustering_model,
+        args.transformations,
+        args.label_filter,
+        args.grid_cv,
+        args.seed,
+        args.output,
+        args.force
+    )
