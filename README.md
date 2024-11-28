@@ -2,10 +2,14 @@
 
 This repository is for the investigation of the impact of data normalization in integrative analysis of the single-cell RNA-seq data.
 
+Check out this [document](https://iron-lion.github.io/scRNAseq-preprocessing-impact-doc/chapters/intro/intro.html).
+
 ----
 ## More information
+* [BMC Bioinformatics](https://doi.org/10.1186/s12859-024-05788-5)
 * [bioRxiv](https://doi.org/10.1101/2022.07.19.500522)
 * [Poster](https://github.com/iron-lion/scRNAseq-preprocessing-impact/blob/main/figures/06_22_poster.png)
+
 
 ----
 ## Reference
